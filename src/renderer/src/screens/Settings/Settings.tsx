@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Trans } from "react-i18next";
 import { useTheme } from "../../components/ThemeProvider";
 import { THEME_OPTIONS } from "../../constants";
 import { useI18n } from "../../components/useI18n";
@@ -654,14 +655,13 @@ function Settings({ profile }: { profile?: string }): React.JSX.Element {
               <div className="settings-migration-title">
                 {t("settings.migrationDetected")}
               </div>
-              <div
-                className="settings-migration-desc"
-                dangerouslySetInnerHTML={{
-                  __html: t("settings.migrationDesc", {
-                    path: openclawPath || "",
-                  }),
-                }}
-              />
+              <div className="settings-migration-desc">
+                <Trans
+                  i18nKey="settings.migrationDesc"
+                  values={{ path: openclawPath || "" }}
+                  components={{ code: <code /> }}
+                />
+              </div>
             </div>
             <button
               className="btn-ghost settings-migration-dismiss"
@@ -820,10 +820,12 @@ function Settings({ profile }: { profile?: string }): React.JSX.Element {
           <div className="settings-section-title">
             {t("settings.serverConfigTitle")}
           </div>
-          <div
-            className="settings-field-hint"
-            dangerouslySetInnerHTML={{ __html: t("settings.serverConfigHint") }}
-          />
+          <div className="settings-field-hint">
+            <Trans
+              i18nKey="settings.serverConfigHint"
+              components={{ code: <code /> }}
+            />
+          </div>
         </div>
       )}
 
