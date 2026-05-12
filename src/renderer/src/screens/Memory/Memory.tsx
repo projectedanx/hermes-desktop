@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Trans } from "react-i18next";
 import { Plus, Trash, Refresh } from "../../assets/icons";
 import { useI18n } from "../../components/useI18n";
 import { Check, ExternalLink } from "lucide-react";
@@ -465,7 +466,13 @@ function Memory({ profile }: { profile?: string }): React.JSX.Element {
           <div className="memory-providers-hint">
             {t("memory.providersHint")}
             {memoryProvider ? (
-              <span dangerouslySetInnerHTML={{ __html: t("memory.providersHintActive", { provider: memoryProvider }) }} />
+              <span>
+                <Trans
+                  i18nKey="memory.providersHintActive"
+                  values={{ provider: memoryProvider }}
+                  components={{ strong: <strong /> }}
+                />
+              </span>
             ) : (
               <span> {t("memory.providersHintInactive")}</span>
             )}
