@@ -296,6 +296,20 @@ export function getHermesHome(profile?: string): string {
 
 const SUPPORTED_PLATFORMS = ["telegram", "discord", "slack", "whatsapp", "signal"];
 
+const PLATFORM_GET_RE = new Map<string, RegExp>(
+  SUPPORTED_PLATFORMS.map((p) => [
+    p,
+    new RegExp(`^[ \\t]+${p}:\\s*\\n[ \\t]+enabled:\\s*(true|false)`, "m"),
+  ]),
+);
+
+const PLATFORM_SET_RE = new Map<string, RegExp>(
+  SUPPORTED_PLATFORMS.map((p) => [
+    p,
+    new RegExp(`^([ \\t]+${p}:\\s*\\n[ \\t]+enabled:\\s*)(?:true|false)`, "m"),
+  ]),
+);
+
 export function getPlatformEnabled(profile?: string): Record<string, boolean> {
   const { configFile } = profilePaths(profile);
   if (!existsSync(configFile)) return {};
@@ -305,10 +319,7 @@ export function getPlatformEnabled(profile?: string): Record<string, boolean> {
 
   for (const platform of SUPPORTED_PLATFORMS) {
     // Match "  platform:\n    enabled: true/false" under the platforms: block
-    const re = new RegExp(
-      `^[ \\t]+${platform}:\\s*\\n[ \\t]+enabled:\\s*(true|false)`,
-      "m",
-    );
+    const re = PLATFORM_GET_RE.get(platform)!;
     const match = content.match(re);
     result[platform] = match ? match[1] === "true" : false;
   }
@@ -329,10 +340,7 @@ export function setPlatformEnabled(
   let content = readFileSync(configFile, "utf-8");
 
   // Check if the platform entry already exists under platforms:
-  const existingRe = new RegExp(
-    `^([ \\t]+${platform}:\\s*\\n[ \\t]+enabled:\\s*)(?:true|false)`,
-    "m",
-  );
+  const existingRe = PLATFORM_SET_RE.get(platform)!;
 
   if (existingRe.test(content)) {
     // Update existing entry
