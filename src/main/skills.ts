@@ -1,5 +1,5 @@
 import { execFileSync } from "child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { existsSync, promises as fsPromises } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import {
@@ -65,29 +65,35 @@ function parseSkillFrontmatter(content: string): {
  * Walk the skills directory to find all installed skills.
  * Structure: skills/<category>/<skill-name>/SKILL.md
  */
-export function listInstalledSkills(profile?: string): InstalledSkill[] {
+export async function listInstalledSkills(
+  profile?: string,
+): Promise<InstalledSkill[]> {
   const skillsDir = join(profileHome(profile), "skills");
   if (!existsSync(skillsDir)) return [];
 
   const skills: InstalledSkill[] = [];
 
   try {
-    const categories = readdirSync(skillsDir);
+    const categories = await fsPromises.readdir(skillsDir);
 
-    for (const category of categories) {
+    const categoryPromises = categories.map(async (category) => {
       const categoryPath = join(skillsDir, category);
-      if (!statSync(categoryPath).isDirectory()) continue;
+      const stat = await fsPromises.stat(categoryPath).catch(() => null);
+      if (!stat || !stat.isDirectory()) return;
 
-      const entries = readdirSync(categoryPath);
-      for (const entry of entries) {
+      const entries = await fsPromises.readdir(categoryPath).catch(() => []);
+      const entryPromises = entries.map(async (entry) => {
         const entryPath = join(categoryPath, entry);
-        if (!statSync(entryPath).isDirectory()) continue;
+        const entryStat = await fsPromises.stat(entryPath).catch(() => null);
+        if (!entryStat || !entryStat.isDirectory()) return;
 
         const skillFile = join(entryPath, "SKILL.md");
-        if (!existsSync(skillFile)) continue;
+        const fileStat = await fsPromises.stat(skillFile).catch(() => null);
+        if (!fileStat || !fileStat.isFile()) return;
 
         try {
-          const content = readFileSync(skillFile, "utf-8").slice(0, 4000);
+          const buffer = await fsPromises.readFile(skillFile);
+          const content = buffer.toString("utf-8").slice(0, 4000);
           const meta = parseSkillFrontmatter(content);
 
           skills.push({
@@ -104,8 +110,11 @@ export function listInstalledSkills(profile?: string): InstalledSkill[] {
             path: entryPath,
           });
         }
-      }
-    }
+      });
+      await Promise.all(entryPromises);
+    });
+
+    await Promise.all(categoryPromises);
   } catch {
     // ignore
   }
@@ -119,12 +128,14 @@ export function listInstalledSkills(profile?: string): InstalledSkill[] {
 /**
  * Get the full content of a SKILL.md for the detail view.
  */
-export function getSkillContent(skillPath: string): string {
+export async function getSkillContent(skillPath: string): Promise<string> {
   const skillFile = join(skillPath, "SKILL.md");
-  if (!existsSync(skillFile)) return "";
+  const fileStat = await fsPromises.stat(skillFile).catch(() => null);
+  if (!fileStat || !fileStat.isFile()) return "";
 
   try {
-    return readFileSync(skillFile, "utf-8");
+    const buffer = await fsPromises.readFile(skillFile);
+    return buffer.toString("utf-8");
   } catch {
     return "";
   }
@@ -180,29 +191,33 @@ export function searchSkills(query: string): SkillSearchResult[] {
 /**
  * List bundled skills from the hermes-agent repo.
  */
-export function listBundledSkills(): SkillSearchResult[] {
+export async function listBundledSkills(): Promise<SkillSearchResult[]> {
   const bundledDir = join(HERMES_REPO, "skills");
   if (!existsSync(bundledDir)) return [];
 
   const skills: SkillSearchResult[] = [];
 
   try {
-    const categories = readdirSync(bundledDir);
+    const categories = await fsPromises.readdir(bundledDir);
 
-    for (const category of categories) {
+    const categoryPromises = categories.map(async (category) => {
       const catPath = join(bundledDir, category);
-      if (!statSync(catPath).isDirectory()) continue;
+      const stat = await fsPromises.stat(catPath).catch(() => null);
+      if (!stat || !stat.isDirectory()) return;
 
-      const entries = readdirSync(catPath);
-      for (const entry of entries) {
+      const entries = await fsPromises.readdir(catPath).catch(() => []);
+      const entryPromises = entries.map(async (entry) => {
         const entryPath = join(catPath, entry);
-        if (!statSync(entryPath).isDirectory()) continue;
+        const entryStat = await fsPromises.stat(entryPath).catch(() => null);
+        if (!entryStat || !entryStat.isDirectory()) return;
 
         const skillFile = join(entryPath, "SKILL.md");
-        if (!existsSync(skillFile)) continue;
+        const fileStat = await fsPromises.stat(skillFile).catch(() => null);
+        if (!fileStat || !fileStat.isFile()) return;
 
         try {
-          const content = readFileSync(skillFile, "utf-8").slice(0, 4000);
+          const buffer = await fsPromises.readFile(skillFile);
+          const content = buffer.toString("utf-8").slice(0, 4000);
           const meta = parseSkillFrontmatter(content);
 
           skills.push({
@@ -221,8 +236,11 @@ export function listBundledSkills(): SkillSearchResult[] {
             installed: false,
           });
         }
-      }
-    }
+      });
+      await Promise.all(entryPromises);
+    });
+
+    await Promise.all(categoryPromises);
   } catch {
     // ignore
   }
